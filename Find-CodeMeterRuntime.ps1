@@ -81,13 +81,30 @@ function Add-Result {
     }
 }
 
+# Helper function to extract version from registry item
+function Get-RegistryVersion {
+    param($item)
+    if ($item.DisplayVersion) {
+        return $item.DisplayVersion.ToString()
+    }
+    elseif ($item.VersionString) {
+        return $item.VersionString.ToString()
+    }
+    elseif ($item.Version) {
+        return $item.Version.ToString()
+    }
+    else {
+        return ""
+    }
+}
+
 # 1. Check Installed Programs via Registry (32-bit)
 Write-Host "Checking Registry (32-bit programs)..." -ForegroundColor White
 $reg32 = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | 
-    Where-Object { $_.DisplayName -like "*CodeMeter*" }
+    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" }
 if ($reg32) {
     foreach ($item in $reg32) {
-        $version = if ($item.DisplayVersion) { $item.DisplayVersion.ToString() } else { "" }
+        $version = Get-RegistryVersion -item $item
         $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
         $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
         $detail = "$($item.DisplayName) - Version: $version - Publisher: $($item.Publisher)$installPath$uninstallPath"
@@ -98,10 +115,10 @@ if ($reg32) {
 # 2. Check Installed Programs via Registry (64-bit)
 Write-Host "Checking Registry (64-bit programs)..." -ForegroundColor White
 $reg64 = Get-ItemProperty "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | 
-    Where-Object { $_.DisplayName -like "*CodeMeter*" }
+    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" }
 if ($reg64) {
     foreach ($item in $reg64) {
-        $version = if ($item.DisplayVersion) { $item.DisplayVersion.ToString() } else { "" }
+        $version = Get-RegistryVersion -item $item
         $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
         $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
         $detail = "$($item.DisplayName) - Version: $version - Publisher: $($item.Publisher)$installPath$uninstallPath"
@@ -112,7 +129,7 @@ if ($reg64) {
 # 3. Check Installed Programs via WMI
 Write-Host "Checking WMI (Installed Programs)..." -ForegroundColor White
 $wmiPrograms = Get-WmiObject -Class Win32_Product -ErrorAction SilentlyContinue | 
-    Where-Object { $_.Name -like "*CodeMeter*" }
+    Where-Object { $_.Name -like "*CodeMeter*" -or $_.Name -like "*WIBU*" -or $_.Vendor -like "*WIBU*" }
 if ($wmiPrograms) {
     foreach ($prog in $wmiPrograms) {
         $version = if ($prog.Version) { $prog.Version.ToString() } else { "" }
@@ -140,7 +157,7 @@ if ($processes) {
 # 5. Check Windows Services
 Write-Host "Checking Windows Services..." -ForegroundColor White
 $services = Get-Service -ErrorAction SilentlyContinue | 
-    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.Name -like "*CodeMeter*" }
+    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.Name -like "*CodeMeter*" -or $_.DisplayName -like "*WIBU*" -or $_.Name -like "*WIBU*" }
 if ($services) {
     foreach ($svc in $services) {
         $svcPath = (Get-WmiObject Win32_Service -Filter "Name='$($svc.Name)'").PathName
