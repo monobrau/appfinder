@@ -87,10 +87,11 @@ $reg32 = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Unins
     Where-Object { $_.DisplayName -like "*CodeMeter*" }
 if ($reg32) {
     foreach ($item in $reg32) {
+        $version = if ($item.DisplayVersion) { $item.DisplayVersion.ToString() } else { "" }
         $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
         $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
-        $detail = "$($item.DisplayName) - Version: $($item.DisplayVersion) - Publisher: $($item.Publisher)$installPath$uninstallPath"
-        Add-Result -Category "INSTALLED PROGRAM (Registry 32-bit)" -Detail $detail -Name $item.DisplayName -Version $item.DisplayVersion -Publisher $item.Publisher -InstallPath $item.InstallLocation -UninstallPath $item.UninstallString
+        $detail = "$($item.DisplayName) - Version: $version - Publisher: $($item.Publisher)$installPath$uninstallPath"
+        Add-Result -Category "INSTALLED PROGRAM (Registry 32-bit)" -Detail $detail -Name $item.DisplayName -Version $version -Publisher $item.Publisher -InstallPath $item.InstallLocation -UninstallPath $item.UninstallString
     }
 }
 
@@ -100,10 +101,11 @@ $reg64 = Get-ItemProperty "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentV
     Where-Object { $_.DisplayName -like "*CodeMeter*" }
 if ($reg64) {
     foreach ($item in $reg64) {
+        $version = if ($item.DisplayVersion) { $item.DisplayVersion.ToString() } else { "" }
         $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
         $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
-        $detail = "$($item.DisplayName) - Version: $($item.DisplayVersion) - Publisher: $($item.Publisher)$installPath$uninstallPath"
-        Add-Result -Category "INSTALLED PROGRAM (Registry 64-bit)" -Detail $detail -Name $item.DisplayName -Version $item.DisplayVersion -Publisher $item.Publisher -InstallPath $item.InstallLocation -UninstallPath $item.UninstallString
+        $detail = "$($item.DisplayName) - Version: $version - Publisher: $($item.Publisher)$installPath$uninstallPath"
+        Add-Result -Category "INSTALLED PROGRAM (Registry 64-bit)" -Detail $detail -Name $item.DisplayName -Version $version -Publisher $item.Publisher -InstallPath $item.InstallLocation -UninstallPath $item.UninstallString
     }
 }
 
@@ -113,9 +115,10 @@ $wmiPrograms = Get-WmiObject -Class Win32_Product -ErrorAction SilentlyContinue 
     Where-Object { $_.Name -like "*CodeMeter*" }
 if ($wmiPrograms) {
     foreach ($prog in $wmiPrograms) {
+        $version = if ($prog.Version) { $prog.Version.ToString() } else { "" }
         $installPath = if ($prog.InstallLocation) { " - Install Path: $($prog.InstallLocation)" } else { "" }
-        $detail = "$($prog.Name) - Version: $($prog.Version) - Vendor: $($prog.Vendor)$installPath"
-        Add-Result -Category "INSTALLED PROGRAM (WMI)" -Detail $detail -Name $prog.Name -Version $prog.Version -Publisher $prog.Vendor -InstallPath $prog.InstallLocation
+        $detail = "$($prog.Name) - Version: $version - Vendor: $($prog.Vendor)$installPath"
+        Add-Result -Category "INSTALLED PROGRAM (WMI)" -Detail $detail -Name $prog.Name -Version $version -Publisher $prog.Vendor -InstallPath $prog.InstallLocation
     }
 }
 
