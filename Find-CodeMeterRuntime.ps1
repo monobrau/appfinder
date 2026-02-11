@@ -98,10 +98,30 @@ function Get-RegistryVersion {
     }
 }
 
+# 0. Check for CodeMeter Runtime Kit by GUID (MSI Product Code)
+# Known GUID: {F1A6B760-59B6-4DD2-9D3D-097091DF224F}
+Write-Host "Checking Registry (MSI GUID)..." -ForegroundColor White
+$guidPaths = @(
+    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{F1A6B760-59B6-4DD2-9D3D-097091DF224F}",
+    "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{F1A6B760-59B6-4DD2-9D3D-097091DF224F}"
+)
+foreach ($guidPath in $guidPaths) {
+    if (Test-Path $guidPath) {
+        $item = Get-ItemProperty $guidPath -ErrorAction SilentlyContinue
+        if ($item) {
+            $version = Get-RegistryVersion -item $item
+            $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
+            $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
+            $detail = "$($item.DisplayName) - Version: $version - Publisher: $($item.Publisher)$installPath$uninstallPath"
+            Add-Result -Category "INSTALLED PROGRAM (Registry GUID)" -Detail $detail -Name $item.DisplayName -Version $version -Publisher $item.Publisher -InstallPath $item.InstallLocation -UninstallPath $item.UninstallString
+        }
+    }
+}
+
 # 1. Check Installed Programs via Registry (32-bit)
 Write-Host "Checking Registry (32-bit programs)..." -ForegroundColor White
 $reg32 = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | 
-    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" }
+    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.DisplayName -like "*Runtime Kit*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" }
 if ($reg32) {
     foreach ($item in $reg32) {
         $version = Get-RegistryVersion -item $item
@@ -115,7 +135,7 @@ if ($reg32) {
 # 2. Check Installed Programs via Registry (64-bit)
 Write-Host "Checking Registry (64-bit programs)..." -ForegroundColor White
 $reg64 = Get-ItemProperty "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | 
-    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" }
+    Where-Object { $_.DisplayName -like "*CodeMeter*" -or $_.DisplayName -like "*Runtime Kit*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" }
 if ($reg64) {
     foreach ($item in $reg64) {
         $version = Get-RegistryVersion -item $item
@@ -221,6 +241,26 @@ if ($found) {
 } else {
     Write-Host "RESULT: CodeMeter Runtime NOT FOUND on this system." -ForegroundColor Red
     Write-Host "========================================" -ForegroundColor Cyan
+    
+    # Diagnostic: Show all programs with "Code" or "WIBU" in name/publisher to help identify alternative names
+    Write-Host ""
+    Write-Host "DIAGNOSTIC: Searching for similar program names..." -ForegroundColor Yellow
+    $allPrograms = @()
+    $allPrograms += Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | 
+        Where-Object { $_.DisplayName -like "*Code*" -or $_.Publisher -like "*Code*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" } | 
+        Select-Object DisplayName, Publisher, DisplayVersion, InstallLocation
+    $allPrograms += Get-ItemProperty "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | 
+        Where-Object { $_.DisplayName -like "*Code*" -or $_.Publisher -like "*Code*" -or $_.DisplayName -like "*WIBU*" -or $_.Publisher -like "*WIBU*" } | 
+        Select-Object DisplayName, Publisher, DisplayVersion, InstallLocation
+    
+    if ($allPrograms) {
+        Write-Host "Found programs with 'Code' or 'WIBU' in name/publisher:" -ForegroundColor Yellow
+        foreach ($prog in $allPrograms | Sort-Object DisplayName -Unique) {
+            Write-Host "  - $($prog.DisplayName) | Publisher: $($prog.Publisher) | Version: $($prog.DisplayVersion)" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "No programs found with 'Code' or 'WIBU' in name or publisher." -ForegroundColor Gray
+    }
 }
 
 # Output to CSV file if specified
