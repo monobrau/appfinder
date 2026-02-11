@@ -49,7 +49,9 @@ $reg32 = Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Unins
     Where-Object { $_.DisplayName -like "*CodeMeter*" }
 if ($reg32) {
     foreach ($item in $reg32) {
-        Add-Result "INSTALLED PROGRAM (Registry 32-bit)" "$($item.DisplayName) - Version: $($item.DisplayVersion) - Publisher: $($item.Publisher)"
+        $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
+        $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
+        Add-Result "INSTALLED PROGRAM (Registry 32-bit)" "$($item.DisplayName) - Version: $($item.DisplayVersion) - Publisher: $($item.Publisher)$installPath$uninstallPath"
     }
 }
 
@@ -59,7 +61,9 @@ $reg64 = Get-ItemProperty "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentV
     Where-Object { $_.DisplayName -like "*CodeMeter*" }
 if ($reg64) {
     foreach ($item in $reg64) {
-        Add-Result "INSTALLED PROGRAM (Registry 64-bit)" "$($item.DisplayName) - Version: $($item.DisplayVersion) - Publisher: $($item.Publisher)"
+        $installPath = if ($item.InstallLocation) { " - Install Path: $($item.InstallLocation)" } else { "" }
+        $uninstallPath = if ($item.UninstallString) { " - Uninstall: $($item.UninstallString)" } else { "" }
+        Add-Result "INSTALLED PROGRAM (Registry 64-bit)" "$($item.DisplayName) - Version: $($item.DisplayVersion) - Publisher: $($item.Publisher)$installPath$uninstallPath"
     }
 }
 
@@ -69,7 +73,8 @@ $wmiPrograms = Get-WmiObject -Class Win32_Product -ErrorAction SilentlyContinue 
     Where-Object { $_.Name -like "*CodeMeter*" }
 if ($wmiPrograms) {
     foreach ($prog in $wmiPrograms) {
-        Add-Result "INSTALLED PROGRAM (WMI)" "$($prog.Name) - Version: $($prog.Version) - Vendor: $($prog.Vendor)"
+        $installPath = if ($prog.InstallLocation) { " - Install Path: $($prog.InstallLocation)" } else { "" }
+        Add-Result "INSTALLED PROGRAM (WMI)" "$($prog.Name) - Version: $($prog.Version) - Vendor: $($prog.Vendor)$installPath"
     }
 }
 
