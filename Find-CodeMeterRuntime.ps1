@@ -125,11 +125,15 @@ if ($wmiPrograms) {
 # 4. Check Running Processes
 Write-Host "Checking Running Processes..." -ForegroundColor White
 $processes = Get-Process -ErrorAction SilentlyContinue | 
-    Where-Object { $_.ProcessName -like "*CodeMeter*" -or $_.ProcessName -like "*cm*" }
+    Where-Object { $_.ProcessName -like "*CodeMeter*" }
 if ($processes) {
     foreach ($proc in $processes) {
         $procPath = (Get-WmiObject Win32_Process -Filter "ProcessId = $($proc.Id)").ExecutablePath
-        Add-Result "RUNNING PROCESS" "$($proc.ProcessName) (PID: $($proc.Id)) - Path: $procPath"
+        # Only report if path contains CodeMeter or WIBU
+        if ($procPath -like "*CodeMeter*" -or $procPath -like "*WIBU*" -or $proc.ProcessName -like "*CodeMeter*") {
+            $detail = "$($proc.ProcessName) (PID: $($proc.Id)) - Path: $procPath"
+            Add-Result -Category "RUNNING PROCESS" -Detail $detail -Name $proc.ProcessName -ProcessId $proc.Id -InstallPath $procPath
+        }
     }
 }
 
@@ -151,15 +155,13 @@ $commonPaths = @(
     "C:\Program Files\CodeMeter",
     "C:\Program Files (x86)\CodeMeter",
     "C:\Program Files\WIBU-SYSTEMS",
-    "C:\Program Files (x86)\WIBU-SYSTEMS",
-    "C:\Windows\System32\cm*",
-    "C:\Windows\SysWOW64\cm*"
+    "C:\Program Files (x86)\WIBU-SYSTEMS"
 )
 
 foreach ($path in $commonPaths) {
     if (Test-Path $path) {
         $items = Get-ChildItem $path -Recurse -ErrorAction SilentlyContinue | 
-            Where-Object { $_.Name -like "*CodeMeter*" -or $_.Name -like "*cm*" } | 
+            Where-Object { $_.Name -like "*CodeMeter*" -or $_.Name -like "*WIBU*" -or $_.FullName -like "*CodeMeter*" -or $_.FullName -like "*WIBU*" } | 
             Select-Object -First 5
         if ($items) {
             $detail = "Found CodeMeter files in: $path"
@@ -174,7 +176,7 @@ foreach ($path in $commonPaths) {
 # 7. Check Scheduled Tasks
 Write-Host "Checking Scheduled Tasks..." -ForegroundColor White
 $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue | 
-    Where-Object { $_.TaskName -like "*CodeMeter*" -or $_.TaskName -like "*cm*" }
+    Where-Object { $_.TaskName -like "*CodeMeter*" -or $_.TaskName -like "*WIBU*" }
 if ($tasks) {
     foreach ($task in $tasks) {
         $detail = "$($task.TaskName) - State: $($task.State)"
@@ -185,7 +187,7 @@ if ($tasks) {
 # 8. Check for CodeMeter drivers
 Write-Host "Checking Device Drivers..." -ForegroundColor White
 $drivers = Get-WmiObject Win32_SystemDriver -ErrorAction SilentlyContinue | 
-    Where-Object { $_.Name -like "*CodeMeter*" -or $_.Name -like "*cm*" }
+    Where-Object { $_.Name -like "*CodeMeter*" -or $_.PathName -like "*CodeMeter*" -or $_.PathName -like "*WIBU*" }
 if ($drivers) {
     foreach ($drv in $drivers) {
         $detail = "$($drv.Name) - Path: $($drv.PathName) - State: $($drv.State)"
@@ -206,43 +208,57 @@ if ($found) {
 
 # Output to CSV file if specified
 if ($CSVFile -ne "") {
-    try {
-        # If no findings, still record that the scan was performed
-        if ($csvData.Count -eq 0) {
-            $csvData += [PSCustomObject]@{
-                ComputerName = $computerName
-                IPAddress = $ipAddress
-                ScanDate = $scanDate
-                Category = "SCAN COMPLETED"
-                Name = ""
-                Version = ""
-                Publisher = ""
-                InstallPath = ""
-                UninstallPath = ""
-                ProcessId = ""
-                ServiceStatus = ""
-                DriverState = ""
-                Detail = "No CodeMeter Runtime found on this system"
-            }
-        }
-        
-        # Check if file exists to determine if we need headers
-        $fileExists = Test-Path $CSVFile -ErrorAction SilentlyContinue
-        
-        # Export to CSV (append if file exists)
-        $csvData | Export-Csv -Path $CSVFile -NoTypeInformation -Append:$fileExists -Encoding UTF8
-        
-        Write-Host "CSV results saved to: $CSVFile" -ForegroundColor Yellow
-        if ($fileExists) {
-            Write-Host "  (Appended to existing file)" -ForegroundColor Gray
-        } else {
-            Write-Host "  (New file created)" -ForegroundColor Gray
+    # If no findings, still record that the scan was performed
+    if ($csvData.Count -eq 0) {
+        $csvData += [PSCustomObject]@{
+            ComputerName = $computerName
+            IPAddress = $ipAddress
+            ScanDate = $scanDate
+            Category = "SCAN COMPLETED"
+            Name = ""
+            Version = ""
+            Publisher = ""
+            InstallPath = ""
+            UninstallPath = ""
+            ProcessId = ""
+            ServiceStatus = ""
+            DriverState = ""
+            Detail = "No CodeMeter Runtime found on this system"
         }
     }
-    catch {
-        Write-Host "ERROR: Could not write to CSV file: $CSVFile" -ForegroundColor Red
-        Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "  Check network connectivity and file permissions." -ForegroundColor Yellow
+    
+    # Retry logic for CSV file writes (handles file locking from concurrent writes)
+    $maxRetries = 5
+    $retryDelay = 2  # seconds
+    $success = $false
+    
+    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+        try {
+            # Check if file exists to determine if we need headers
+            $fileExists = Test-Path $CSVFile -ErrorAction SilentlyContinue
+            
+            # Export to CSV (append if file exists)
+            $csvData | Export-Csv -Path $CSVFile -NoTypeInformation -Append:$fileExists -Encoding UTF8
+            
+            Write-Host "CSV results saved to: $CSVFile" -ForegroundColor Yellow
+            if ($fileExists) {
+                Write-Host "  (Appended to existing file)" -ForegroundColor Gray
+            } else {
+                Write-Host "  (New file created)" -ForegroundColor Gray
+            }
+            $success = $true
+            break
+        }
+        catch {
+            if ($attempt -lt $maxRetries) {
+                Write-Host "  Attempt $attempt failed, retrying in $retryDelay seconds..." -ForegroundColor Yellow
+                Start-Sleep -Seconds $retryDelay
+            } else {
+                Write-Host "ERROR: Could not write to CSV file after $maxRetries attempts: $CSVFile" -ForegroundColor Red
+                Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host "  Check network connectivity and file permissions." -ForegroundColor Yellow
+            }
+        }
     }
 }
 
