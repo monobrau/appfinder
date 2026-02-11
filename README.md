@@ -37,25 +37,35 @@ Single-line PowerShell command that can be quickly copied and pasted into Screen
 
 ## How to Use with ConnectWise ScreenConnect
 
-### Method 1: Upload and Run Script
+### Method 1: GitHub One-Liner (Recommended)
+**Copy and paste this command directly into ScreenConnect's command prompt:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/YOUR_USERNAME/appfinder/main/Find-CodeMeterRuntime.ps1' -OutFile '$env:TEMP\Find-CodeMeterRuntime.ps1'; & '$env:TEMP\Find-CodeMeterRuntime.ps1'"
+```
+
+**Replace `YOUR_USERNAME` with your GitHub username after pushing the repo.**
+
+This will:
+1. Download the script from GitHub
+2. Save it to a temp file
+3. Execute it immediately
+4. Show full colored output
+
+### Method 2: Execute Directly from GitHub (No Temp File)
+```powershell
+powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/YOUR_USERNAME/appfinder/main/Find-CodeMeterRuntime.ps1' -UseBasicParsing).Content"
+```
+
+### Method 3: Upload and Run Script Locally
 1. Connect to the target machine via ScreenConnect
 2. Upload `Find-CodeMeterRuntime.ps1` to the machine (e.g., `C:\temp\`)
 3. Open PowerShell as Administrator
 4. Navigate to the script location: `cd C:\temp`
 5. Run: `.\Find-CodeMeterRuntime.ps1`
 
-### Method 2: Copy-Paste One-Liner
-1. Connect to the target machine via ScreenConnect
-2. Open PowerShell or Command Prompt
-3. Copy the entire command from `Find-CodeMeterRuntime-OneLiner.ps1`
-4. Paste and press Enter
-
-### Method 3: Direct PowerShell Execution
-1. In ScreenConnect, open PowerShell
-2. Copy and paste this command:
-```powershell
-powershell -ExecutionPolicy Bypass -File "\\path\to\Find-CodeMeterRuntime.ps1"
-```
+### Method 4: Copy-Paste Inline One-Liner
+Copy the command from `Find-CodeMeterRuntime-OneLiner.ps1` and paste directly into ScreenConnect.
 
 ## What to Look For
 
