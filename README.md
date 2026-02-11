@@ -41,10 +41,8 @@ Single-line PowerShell command that can be quickly copied and pasted into Screen
 **Copy and paste this command directly into ScreenConnect's command prompt:**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/YOUR_USERNAME/appfinder/main/Find-CodeMeterRuntime.ps1' -OutFile '$env:TEMP\Find-CodeMeterRuntime.ps1'; & '$env:TEMP\Find-CodeMeterRuntime.ps1'"
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/monobrau/appfinder/main/Find-CodeMeterRuntime.ps1' -OutFile '$env:TEMP\Find-CodeMeterRuntime.ps1'; & '$env:TEMP\Find-CodeMeterRuntime.ps1'"
 ```
-
-**Replace `YOUR_USERNAME` with your GitHub username after pushing the repo.**
 
 This will:
 1. Download the script from GitHub
@@ -54,7 +52,7 @@ This will:
 
 ### Method 2: Execute Directly from GitHub (No Temp File)
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/YOUR_USERNAME/appfinder/main/Find-CodeMeterRuntime.ps1' -UseBasicParsing).Content"
+powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/monobrau/appfinder/main/Find-CodeMeterRuntime.ps1' -UseBasicParsing).Content"
 ```
 
 ### Method 3: Upload and Run Script Locally
