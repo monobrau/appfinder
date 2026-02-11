@@ -27,6 +27,13 @@ Comprehensive PowerShell script that searches for CodeMeter Runtime using multip
 .\Find-CodeMeterRuntime.ps1 -OutputFile "C:\temp\codemeter-results.txt"
 ```
 
+**With CSV export (supports network shares):**
+```powershell
+.\Find-CodeMeterRuntime.ps1 -CSVFile "\\server\share\codemeter-results.csv"
+```
+
+The CSV file will contain columns: ComputerName, IPAddress, ScanDate, Category, Name, Version, Publisher, InstallPath, UninstallPath, ProcessId, ServiceStatus, DriverState, Detail. If the file exists, new rows will be appended (perfect for scanning multiple machines).
+
 ### 2. `Find-CodeMeterRuntime-OneLiner.ps1` (Quick Version)
 Single-line PowerShell command that can be quickly copied and pasted into ScreenConnect's command prompt.
 
@@ -54,6 +61,13 @@ This will:
 ```powershell
 powershell -ExecutionPolicy Bypass -Command "Invoke-Expression (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/monobrau/appfinder/main/Find-CodeMeterRuntime.ps1' -UseBasicParsing).Content"
 ```
+
+### Method 2b: Execute with CSV Export to Network Share
+```powershell
+powershell -ExecutionPolicy Bypass -Command "$temp = $env:TEMP; Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/monobrau/appfinder/main/Find-CodeMeterRuntime.ps1' -OutFile \"$temp\Find-CodeMeterRuntime.ps1\"; & \"$temp\Find-CodeMeterRuntime.ps1\" -CSVFile '\\server\share\codemeter-results.csv'"
+```
+
+Replace `\\server\share\codemeter-results.csv` with your network share path. The CSV will append results from multiple machines, making it easy to aggregate findings across your environment.
 
 ### Method 3: Upload and Run Script Locally
 1. Connect to the target machine via ScreenConnect
