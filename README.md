@@ -41,7 +41,7 @@ Single-line PowerShell command that can be quickly copied and pasted into Screen
 **Copy and paste this command directly into ScreenConnect's command prompt:**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/monobrau/appfinder/main/Find-CodeMeterRuntime.ps1' -OutFile '$env:TEMP\Find-CodeMeterRuntime.ps1'; & '$env:TEMP\Find-CodeMeterRuntime.ps1'"
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/monobrau/appfinder/main/Find-CodeMeterRuntime.ps1' -OutFile '%TEMP%\Find-CodeMeterRuntime.ps1'; & '%TEMP%\Find-CodeMeterRuntime.ps1'"
 ```
 
 This will:
